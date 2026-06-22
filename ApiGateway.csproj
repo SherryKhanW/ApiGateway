@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Grpc.Net.Client" Version="2.80.0" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.9" />
+    <PackageReference Include="protobuf-net.Grpc" Version="1.2.2" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.19.1" />
+    <PackageReference Include="System.ServiceModel.Primitives" Version="10.0.652802" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="ApiGateway.IntegrationTests/**/*.cs" />
+    <Compile Include="ApiGateway.IntegrationTests\CustomWebApplicationFactory.cs" />
+    <Compile Include="ApiGateway.IntegrationTests\Fakes\FakeUserManagementGrpcService.cs" />
+    <Compile Include="ApiGateway.IntegrationTests\JwtServiceTests.cs" />
+    <Compile Include="ApiGateway.IntegrationTests\UserEndpointsTests.cs" />
+    <Content Remove="ApiGateway.IntegrationTests/**/*" />
+    <None Remove="ApiGateway.IntegrationTests/**/*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="ApiGateway.IntegrationTests\obj\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="ApiGateway.IntegrationTests/**/*.cs" />
+    <Content Remove="ApiGateway.IntegrationTests/**/*" />
+    <None Remove="ApiGateway.IntegrationTests/**/*" />
+  </ItemGroup>
+  
+</Project>

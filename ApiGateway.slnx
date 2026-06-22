@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="ApiGateway.csproj" />
+  <Project Path="ApiGateway.IntegrationTests/ApiGateway.IntegrationTests.csproj" />
+</Solution>
