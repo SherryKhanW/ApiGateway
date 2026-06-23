@@ -1,3 +1,4 @@
+using ApiGateway.Grpc.Notification;
 using Grpc.Net.Client;
 using ProtoBuf.Grpc.Client;
 using UserManagement.Grpc.Contracts;
@@ -10,6 +11,7 @@ public static class GrpcClientServiceCollectionExtensions
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        // UserManagement
         var userManagementGrpcUrl =
             configuration["GrpcServices:UserManagement"]
             ?? "http://localhost:5235";
@@ -18,6 +20,17 @@ public static class GrpcClientServiceCollectionExtensions
         {
             var channel = GrpcChannel.ForAddress(userManagementGrpcUrl);
             return channel.CreateGrpcService<IUserGrpcService>();
+        });
+
+        // NotificationService
+        var notificationGrpcUrl =
+            configuration["GrpcServices:NotificationService"]
+            ?? "http://localhost:5111";
+
+        services.AddSingleton<INotificationGrpcService>(_ =>
+        {
+            var channel = GrpcChannel.ForAddress(notificationGrpcUrl);
+            return channel.CreateGrpcService<INotificationGrpcService>();
         });
 
         return services;

@@ -2,7 +2,8 @@ using UserManagement.Grpc.Contracts;
 using ApiGateway.Models.Auth;
 using System.Security.Cryptography;
 using System.Text;
-using ApiGateway.Models.Auth;
+using ApiGateway.Authentication.Models;
+using ApiGateway.Grpc.Notification;
 
 namespace ApiGateway.Authentication;
 
@@ -10,15 +11,37 @@ public class AuthService : IAuthService
 {
     private readonly IUserGrpcService _userGrpcService;
     private readonly IJwtService _jwtService;
+    private readonly INotificationGrpcService _notificationGrpcService;
 
     public AuthService(
         IUserGrpcService userGrpcService,
-        IJwtService jwtService)
+        IJwtService jwtService,
+        INotificationGrpcService notificationGrpcService)
     {
         _userGrpcService = userGrpcService;
         _jwtService = jwtService;
+        _notificationGrpcService = notificationGrpcService;
     }
+    
+    public async Task<bool> RequestOtpAsync(RequestOtpRequest request)
+    {
+        var otp = Random.Shared.Next(100000, 999999).ToString();
+        
+        var response = await _notificationGrpcService.SendOtpEmailAsync(
+            new SendOtpEmailRequest
+            {
+                Email = request.Email,
+                Otp = otp
+            });
 
+        if (!response.Success)
+        {
+            throw new Exception(response.ErrorMessage);
+        }
+        
+        return true;
+    }
+    
     public async Task<string> LoginAsync(LoginRequest request)
     {
         var userResponse = await _userGrpcService.GetUserAsync(new GetUserRequest
@@ -85,18 +108,13 @@ public class AuthService : IAuthService
     }
     
     public async Task<UserGrpcModel> ChangeCountryAsync(
-        string token,
+        int userId,
         ChangeCountryRequest request)
     {
-        var userId = _jwtService.VerifyTokenAndExtractUserId(token);
-
-        if (!userId.HasValue)
-            throw new UnauthorizedAccessException("Invalid token.");
-
         var userResponse = await _userGrpcService.GetUserAsync(
             new GetUserRequest
             {
-                UserId = userId.Value.ToString()
+                UserId = userId.ToString()
             });
 
         if (!userResponse.Success || userResponse.Data is null)
@@ -105,7 +123,7 @@ public class AuthService : IAuthService
         }
 
         var user = userResponse.Data;
-        
+
         if (string.Equals(user.Country, request.Country, StringComparison.OrdinalIgnoreCase))
         {
             throw new InvalidOperationException("New country cannot be the same as current country.");
@@ -126,5 +144,39 @@ public class AuthService : IAuthService
         }
 
         return updateResponse.Data;
+    }
+    
+    public async Task<bool> ChangePasswordAsync(int userId, ChangePasswordRequest request)
+    {
+        var userResponse = await _userGrpcService.GetUserAsync(new GetUserRequest
+        {
+            UserId = userId.ToString()
+        });
+
+        if (!userResponse.Success || userResponse.Data == null)
+            throw new Exception("User not found.");
+
+        var user = userResponse.Data;
+
+        var oldPasswordHash = ComputeMd5Hash(request.OldPassword + user.Salt);
+
+        if (oldPasswordHash != user.PasswordHash)
+            return false;
+
+        var newSalt = Guid.NewGuid().ToString("N");
+        var newPasswordHash = ComputeMd5Hash(request.NewPassword + newSalt);
+
+        user.Salt = newSalt;
+        user.PasswordHash = newPasswordHash;
+
+        var updateResponse = await _userGrpcService.UpsertUserAsync(new UpsertUserRequest
+        {
+            User = user
+        });
+
+        if (!updateResponse.Success)
+            throw new Exception(updateResponse.ErrorMessage);
+
+        return true;
     }
 }
