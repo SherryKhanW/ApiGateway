@@ -3,6 +3,7 @@ using ApiGateway.Models.Auth;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
+using ApiGateway.Authentication.Models;
 
 namespace ApiGateway.Controllers;
 
@@ -69,6 +70,21 @@ public class AuthController : ControllerBase
         catch (InvalidOperationException ex)
         {
             return BadRequest(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+    
+    [AllowAnonymous]
+    [HttpPost("request-otp")]
+    public async Task<IActionResult> RequestOtp(RequestOtpRequest request)
+    {
+        try
+        {
+            var result = await _authService.RequestOtpAsync(request);
+            return Ok(result);
         }
         catch (Exception ex)
         {

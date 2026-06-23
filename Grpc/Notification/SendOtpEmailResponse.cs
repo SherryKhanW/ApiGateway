@@ -1,6 +1,6 @@
 using System.Runtime.Serialization;
 
-namespace ApiGateway.Grpc.Notification;
+namespace NotificationService.Grpc.Contracts;
 
 [DataContract]
 public class SendOtpEmailResponse

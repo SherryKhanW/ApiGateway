@@ -11,4 +11,6 @@ public class LoginRequest
     public string DeviceType { get; set; } = string.Empty;
 
     public string DeviceToken { get; set; } = string.Empty;
+    
+    public string Otp { get; set; } = string.Empty;
 }

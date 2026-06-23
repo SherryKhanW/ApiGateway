@@ -1,7 +1,7 @@
 using ProtoBuf.Grpc;
 using ProtoBuf.Grpc.Configuration;
 
-namespace ApiGateway.Grpc.Notification;
+namespace NotificationService.Grpc.Contracts;
 
 [Service]
 public interface INotificationGrpcService

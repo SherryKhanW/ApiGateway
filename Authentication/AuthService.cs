@@ -3,7 +3,8 @@ using ApiGateway.Models.Auth;
 using System.Security.Cryptography;
 using System.Text;
 using ApiGateway.Authentication.Models;
-using ApiGateway.Grpc.Notification;
+using NotificationService.Grpc.Contracts;
+using StackExchange.Redis;
 
 namespace ApiGateway.Authentication;
 
@@ -12,20 +13,31 @@ public class AuthService : IAuthService
     private readonly IUserGrpcService _userGrpcService;
     private readonly IJwtService _jwtService;
     private readonly INotificationGrpcService _notificationGrpcService;
+    private readonly IDatabase _redis;
 
     public AuthService(
         IUserGrpcService userGrpcService,
         IJwtService jwtService,
-        INotificationGrpcService notificationGrpcService)
+        INotificationGrpcService notificationGrpcService,
+        IConnectionMultiplexer redis)
     {
         _userGrpcService = userGrpcService;
         _jwtService = jwtService;
         _notificationGrpcService = notificationGrpcService;
+        _redis = redis.GetDatabase();
     }
     
     public async Task<bool> RequestOtpAsync(RequestOtpRequest request)
     {
         var otp = Random.Shared.Next(100000, 999999).ToString();
+        
+        await _redis.StringSetAsync(
+
+            $"otp:{request.Email}",
+
+            otp,
+
+            TimeSpan.FromMinutes(1));
         
         var response = await _notificationGrpcService.SendOtpEmailAsync(
             new SendOtpEmailRequest
@@ -43,7 +55,15 @@ public class AuthService : IAuthService
     }
     
     public async Task<string> LoginAsync(LoginRequest request)
-    {
+    {   
+        var storedOtp = await _redis.StringGetAsync($"otp:{request.Email}");
+
+        if (storedOtp.IsNullOrEmpty)
+            throw new Exception("OTP expired.");
+
+        if (storedOtp != request.Otp)
+            throw new Exception("Invalid OTP.");
+        
         var userResponse = await _userGrpcService.GetUserAsync(new GetUserRequest
         {
             Email = request.Email
@@ -95,6 +115,8 @@ public class AuthService : IAuthService
 
         if (!sessionResponse.Success)
             throw new Exception("Failed to create session.");
+        
+        await _redis.KeyDeleteAsync($"otp:{request.Email}");
         
         return token;
     }

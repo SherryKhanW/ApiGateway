@@ -1,4 +1,4 @@
-using ApiGateway.Grpc.Notification;
+using NotificationService.Grpc.Contracts;
 using Grpc.Net.Client;
 using ProtoBuf.Grpc.Client;
 using UserManagement.Grpc.Contracts;
@@ -24,7 +24,7 @@ public static class GrpcClientServiceCollectionExtensions
 
         // NotificationService
         var notificationGrpcUrl =
-            configuration["GrpcServices:NotificationService"]
+            configuration["GrpcServices:Notification"]
             ?? "http://localhost:5111";
 
         services.AddSingleton<INotificationGrpcService>(_ =>
