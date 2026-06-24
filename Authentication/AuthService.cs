@@ -30,7 +30,7 @@ public class AuthService : IAuthService
     public async Task<bool> RequestOtpAsync(RequestOtpRequest request)
     {
         var otp = Random.Shared.Next(100000, 999999).ToString();
-        
+        Console.WriteLine($"OTP for {request.Email}: {otp}");
         await _redis.StringSetAsync(
 
             $"otp:{request.Email}",
@@ -75,7 +75,7 @@ public class AuthService : IAuthService
         var user = userResponse.Data;
 
         var passwordHash = ComputeMd5Hash(request.Password + user.Salt);
-
+        
         if (passwordHash != user.PasswordHash)
             throw new UnauthorizedAccessException("Invalid email or password.");
 

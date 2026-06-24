@@ -4,10 +4,9 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using StackExchange.Redis;
+using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
-
-builder.Services.AddOpenApi();
 
 builder.Services.AddGrpcClients(builder.Configuration);
 
@@ -39,6 +38,7 @@ builder.Services
         };
     });
 
+
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("AuthenticatedUser", policy =>
@@ -51,20 +51,48 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(
 
     ConnectionMultiplexer.Connect("localhost:6379"));
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("ReactFrontend", policy =>
+    {
+        policy
+            .WithOrigins("http://localhost:5173")
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
+
 builder.Services.AddSingleton<IJwtService, JwtService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Enter 'Bearer {your JWT token}'."
+    });
+
+    
+    options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecuritySchemeReference("Bearer", document),
+            []
+        }
+    });
+    
+});
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
-
 app.UseHttpsRedirection();
+app.UseCors("ReactFrontend");
 
 app.UseSwagger();
 app.UseSwaggerUI();
